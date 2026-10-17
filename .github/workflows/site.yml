@@ -1,5 +1,7 @@
 # From the Upptime v1.46.0 template (github.com/upptime/upptime, MIT), owned here by hand so
 # every action stays pinned by commit SHA. Upgrading Upptime re-pins every workflow at once.
+# The site step installs @upptime/status-page at its latest version, so it gets only the
+# short-lived minted token: never the App's private key, never a site URL secret.
 name: Static Site CI
 on:
   schedule:
@@ -15,21 +17,29 @@ jobs:
     name: Build and deploy site
     runs-on: ubuntu-latest
     steps:
+      - name: Create GitHub App token
+        id: app_token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ steps.app_token.outputs.token }}
       - name: Generate site
         uses: upptime/uptime-monitor@a284d6064bcbf89db3f1e2a6c533d0e69111573b # v1.46.0
         with:
           command: "site"
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ steps.app_token.outputs.token }}
       - name: GitHub Pages Deploy
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ steps.app_token.outputs.token }}
           publish_dir: "site/status-page/__sapper__/export/"
           force_orphan: "false"
           user_name: "Upptime Bot"

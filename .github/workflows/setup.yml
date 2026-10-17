@@ -1,6 +1,9 @@
 # From the Upptime v1.46.0 template (github.com/upptime/upptime, MIT), owned here by hand so
 # every action stays pinned by commit SHA. Upgrading Upptime re-pins every workflow at once.
 # Runs whenever .upptimerc.yml changes: an added install shows on the page without waiting a day.
+# The token is minted from the GitHub App so incident issues are bot-authored and notify the
+# owner. SECRETS_CONTEXT is an allowlist of the site URL secrets; see the README. The graphs
+# and site steps run unpinned npm packages, so they get only the minted token.
 name: Setup CI
 on:
   push:
@@ -17,28 +20,36 @@ jobs:
     name: Setup Upptime
     runs-on: ubuntu-latest
     steps:
+      - name: Create GitHub App token
+        id: app_token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-issues: write
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-          token: ${{ secrets.GH_PAT }}
+          token: ${{ steps.app_token.outputs.token }}
       - name: Mask watched hostnames
         run: node scripts/mask-hosts.mjs
         env:
-          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+          SECRETS_CONTEXT: '{"EU_1_URL":${{ toJson(secrets.EU_1_URL) }}}'
       - name: Update response time
         uses: upptime/uptime-monitor@a284d6064bcbf89db3f1e2a6c533d0e69111573b # v1.46.0
         with:
           command: "response-time"
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-          SECRETS_CONTEXT: ${{ toJson(secrets) }}
+          GH_PAT: ${{ steps.app_token.outputs.token }}
+          SECRETS_CONTEXT: '{"EU_1_URL":${{ toJson(secrets.EU_1_URL) }}}'
       - name: Update summary in README
         uses: upptime/uptime-monitor@a284d6064bcbf89db3f1e2a6c533d0e69111573b # v1.46.0
         with:
           command: "readme"
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ steps.app_token.outputs.token }}
       - name: Setup Node.js for graphs
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -48,17 +59,17 @@ jobs:
         with:
           command: "graphs"
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ steps.app_token.outputs.token }}
       - name: Generate site
         uses: upptime/uptime-monitor@a284d6064bcbf89db3f1e2a6c533d0e69111573b # v1.46.0
         with:
           command: "site"
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_PAT: ${{ steps.app_token.outputs.token }}
       - name: GitHub Pages Deploy
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
-          github_token: ${{ secrets.GH_PAT }}
+          github_token: ${{ steps.app_token.outputs.token }}
           publish_dir: "site/status-page/__sapper__/export/"
           force_orphan: "false"
           user_name: "Upptime Bot"

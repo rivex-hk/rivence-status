@@ -31,10 +31,23 @@ created per use and thrown away, so it would only ever read as an outage.
 
 1. Pick the next free label for the region, such as `EU-2`. Never use a customer's name.
 2. Add the repository secret `EU_2_URL` with the value `https://<host>/api/health/ready`.
-3. Replace the repository secret `CERT_HOSTS` with the whole map, now including the new
+3. Add the secret's name to the `SECRETS_CONTEXT` allowlist. The line appears in **six places
+   across three workflows**: two in each of `uptime.yml`, `response-time.yml` and `setup.yml`
+   (the hostname-mask step and the Upptime step). `grep -n SECRETS_CONTEXT .github/workflows/*.yml`
+   lists them, and all six must stay identical. With two installs each reads:
+
+   ```yaml
+   SECRETS_CONTEXT: '{"EU_1_URL":${{ toJson(secrets.EU_1_URL) }},"EU_2_URL":${{ toJson(secrets.EU_2_URL) }}}'
+   ```
+
+   A secret missing from the allowlist is never substituted, so its install reads as down.
+   The list is explicit on purpose: it keeps the GitHub App's private key and every other
+   secret away from Upptime and from the npm packages it installs.
+
+4. Replace the repository secret `CERT_HOSTS` with the whole map, now including the new
    label, for example `{"EU-1":"<host>","EU-2":"<host>"}`. A secret cannot be read back, so
    the operator's password store holds the master copy of this map.
-4. Add the site entry to `.upptimerc.yml` and commit it to `main`:
+5. Add the site entry to `.upptimerc.yml` and commit it, with the workflow edits, to `main`:
 
    ```yaml
    - name: EU-2
@@ -70,8 +83,13 @@ action they use is pinned by commit SHA. The template's two self-updating workfl
 back to unpinned tags and run unpinned code with the repository token. To upgrade Upptime,
 re-pin `upptime/uptime-monitor` in every workflow at once.
 
-The secrets are `GH_PAT`, a fine-grained token for this repository only, one `<LABEL>_URL` per
-install, and `CERT_HOSTS`. The certificate job uses only the workflow's own `GITHUB_TOKEN`.
+Upptime works with a token minted per run from a GitHub App installed on this repository only
+(Contents read/write, Issues read/write, Metadata read). That token is short-lived, and an
+issue opened with it is authored by the App's bot account. The owner's own token would author
+the issues as the owner, and GitHub never notifies anyone about their own actions. The App's
+private key goes only to `actions/create-github-app-token`. The secrets are `APP_CLIENT_ID`,
+`APP_PRIVATE_KEY`, one `<LABEL>_URL` per install, and `CERT_HOSTS`. The certificate job uses
+only the workflow's own `GITHUB_TOKEN`, whose issues come from `github-actions[bot]`.
 
 ## Current status
 
