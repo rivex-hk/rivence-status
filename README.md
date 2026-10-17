@@ -41,8 +41,8 @@ created per use and thrown away, so it would only ever read as an outage.
    ```
 
    A secret missing from the allowlist is never substituted, so its install reads as down.
-   The list is explicit on purpose: it keeps the GitHub App's private key and every other
-   secret away from Upptime and from the npm packages it installs.
+   The list is explicit on purpose: only the steps that probe see the site URLs, and the
+   steps that install npm packages at their latest version never do.
 
 4. Replace the repository secret `CERT_HOSTS` with the whole map, now including the new
    label, for example `{"EU-1":"<host>","EU-2":"<host>"}`. A secret cannot be read back, so
@@ -58,7 +58,8 @@ created per use and thrown away, so it would only ever read as an outage.
      maxRedirects: 0
    ```
 
-   The push runs Setup CI, which adds the component to the page.
+   Your push, or the merge of your pull request, runs Setup CI, which adds the component to
+   the page.
 
 Removing an install is the same steps in reverse.
 
@@ -83,13 +84,17 @@ action they use is pinned by commit SHA. The template's two self-updating workfl
 back to unpinned tags and run unpinned code with the repository token. To upgrade Upptime,
 re-pin `upptime/uptime-monitor` in every workflow at once.
 
-Upptime works with a token minted per run from a GitHub App installed on this repository only
-(Contents read/write, Issues read/write, Metadata read). That token is short-lived, and an
-issue opened with it is authored by the App's bot account. The owner's own token would author
-the issues as the owner, and GitHub never notifies anyone about their own actions. The App's
-private key goes only to `actions/create-github-app-token`. The secrets are `APP_CLIENT_ID`,
-`APP_PRIVATE_KEY`, one `<LABEL>_URL` per install, and `CERT_HOSTS`. The certificate job uses
-only the workflow's own `GITHUB_TOKEN`, whose issues come from `github-actions[bot]`.
+Every workflow, Upptime's and the certificate job, works with its own `GITHUB_TOKEN`; no
+stored credential exists. Issues opened with it are authored by `github-actions[bot]`, so they
+notify the owner. A personal token would author them as the owner, and GitHub never notifies
+anyone about their own actions. Each job asks only for what it uses: `contents: write` where
+it commits or pushes `gh-pages`, and `issues: write` where Upptime opens or closes incidents.
+
+A push made with `GITHUB_TOKEN` never starts another workflow, so every workflow runs on its
+own schedule or by hand, and Setup CI does all of its steps in one job. Only a person's push
+of `.upptimerc.yml` starts Setup CI.
+
+The secrets are one `<LABEL>_URL` per install and `CERT_HOSTS`.
 
 ## Current status
 

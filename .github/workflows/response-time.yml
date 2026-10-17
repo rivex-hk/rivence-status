@@ -1,14 +1,13 @@
 # From the Upptime v1.46.0 template (github.com/upptime/upptime, MIT), owned here by hand so
 # every action stays pinned by commit SHA. Upgrading Upptime re-pins every workflow at once.
-# The token is minted from the GitHub App so incident issues are bot-authored and notify the
-# owner. SECRETS_CONTEXT is an allowlist of the site URL secrets; see the README.
+# Upptime runs on the workflow's own GITHUB_TOKEN, so incident issues are authored by
+# github-actions[bot] and notify the owner. SECRETS_CONTEXT allowlists the site URL secrets.
 name: Response Time CI
 on:
   schedule:
     - cron: "0 23 * * *"
   workflow_dispatch:
-permissions:
-  contents: read
+permissions: {}
 concurrency:
   group: ${{ github.repository }}-${{ github.head_ref || github.ref_name }}-upptime
   cancel-in-progress: false
@@ -16,20 +15,15 @@ jobs:
   release:
     name: Check status
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
     steps:
-      - name: Create GitHub App token
-        id: app_token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ secrets.APP_CLIENT_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          permission-contents: write
-          permission-issues: write
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-          token: ${{ steps.app_token.outputs.token }}
+          token: ${{ github.token }}
       - name: Mask watched hostnames
         run: node scripts/mask-hosts.mjs
         env:
@@ -39,5 +33,5 @@ jobs:
         with:
           command: "response-time"
         env:
-          GH_PAT: ${{ steps.app_token.outputs.token }}
+          GH_PAT: ${{ github.token }}
           SECRETS_CONTEXT: '{"EU_1_URL":${{ toJson(secrets.EU_1_URL) }}}'
