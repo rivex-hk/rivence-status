@@ -141,7 +141,6 @@ export function pastIncidents(incidents, today) {
         .filter((incident) => dayOf(incident.createdAt) === date)
         .map((incident) => ({
           title: incident.title,
-          resolved: Boolean(incident.closedAt),
           updates: updatesOf(incident),
         })),
     }));

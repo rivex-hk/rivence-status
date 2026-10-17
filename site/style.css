@@ -13,7 +13,9 @@
   --banner-text: #ffffff;
   --tooltip-bg: #1d2330;
   --tooltip-text: #ffffff;
-  --focus: #2b6fd6;
+  --primary: hsl(232 38% 51%);
+  --ok-text: #1a7f45;
+  --major-text: #c62f35;
   color-scheme: light;
 }
 
@@ -32,7 +34,9 @@
     --none: #3a424e;
     --tooltip-bg: #f0f2f5;
     --tooltip-text: #10141a;
-    --focus: #6aa3ff;
+    --primary: hsl(230 62% 71%);
+    --ok-text: #3fb873;
+    --major-text: #f06a6e;
     color-scheme: dark;
   }
 }
@@ -88,13 +92,23 @@ body {
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--primary);
 }
 
 .brand-mark {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: linear-gradient(135deg, var(--ok-bar), var(--ok));
+  background: var(--primary);
+}
+
+a {
+  color: var(--primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .banner {
@@ -168,11 +182,11 @@ body {
 .component-status {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .component-status[data-status="down"] {
-  color: var(--major);
+  color: var(--major-text);
 }
 
 .component-status::before {
@@ -206,11 +220,6 @@ body {
 
 .bar:hover {
   opacity: 0.7;
-}
-
-.bar:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 .bar[data-level="ok"] {
@@ -276,11 +285,7 @@ body {
   margin: 0 0 8px;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--major);
-}
-
-.incident[data-resolved="true"] h4 {
-  color: var(--text);
+  color: var(--primary);
 }
 
 .update {

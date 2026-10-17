@@ -122,22 +122,18 @@ function renderRow(row) {
 function renderIncidentDay(day) {
   const body = day.incidents.length
     ? day.incidents.map((incident) =>
-        el(
-          "article",
-          { class: "incident", "data-resolved": String(incident.resolved) },
-          [
-            el("h4", { text: incident.title }),
-            ...incident.updates.map((update) =>
-              el("div", { class: "update" }, [
-                el("p", {}, [
-                  el("strong", { text: update.label }),
-                  ` - ${update.body}`,
-                ]),
-                el("time", { class: "when", text: update.at }),
+        el("article", { class: "incident" }, [
+          el("h4", { text: incident.title }),
+          ...incident.updates.map((update) =>
+            el("div", { class: "update" }, [
+              el("p", {}, [
+                el("strong", { text: update.label }),
+                ` - ${update.body}`,
               ]),
-            ),
-          ],
-        ),
+              el("time", { class: "when", text: update.at }),
+            ]),
+          ),
+        ]),
       )
     : [el("p", { class: "empty", text: day.emptyText })];
   return el("section", { class: "incident-day" }, [
