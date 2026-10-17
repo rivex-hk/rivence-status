@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Rivence Status</title>
+    <meta
+      name="description"
+      content="Current status and incident history of Rivence installs."
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <div class="wrap">
+        <p class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>Rivence
+        </p>
+      </div>
+    </header>
+    <main class="wrap" id="main">
+      <h1 class="visually-hidden">Rivence status</h1>
+      <section class="banner" id="banner" data-level="none" aria-live="polite">
+        <p id="banner-text">Loading status…</p>
+      </section>
+
+      <section aria-labelledby="uptime-heading">
+        <div class="section-head">
+          <h2 id="uptime-heading" class="small-heading">
+            Uptime over the past <span class="range-90">90</span
+            ><span class="range-60">60</span
+            ><span class="range-30">30</span> days
+          </h2>
+        </div>
+        <div class="card" id="components"></div>
+      </section>
+
+      <section aria-labelledby="incidents-heading" class="incidents">
+        <h2 id="incidents-heading">Past Incidents</h2>
+        <div id="incident-days"></div>
+      </section>
+      <noscript
+        ><p class="notice">
+          This page needs JavaScript to show the current status.
+        </p></noscript
+      >
+    </main>
+    <footer class="wrap footer">
+      <p>
+        Each component is one Rivence install, shown under its own label. Times
+        are in UTC.
+      </p>
+    </footer>
+    <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+  </body>
+</html>

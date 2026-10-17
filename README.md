@@ -1,113 +1,79 @@
 # Rivence status
 
-**Live status:** <!--live status--> **🟩 All systems operational**
-
 This repository is the external watch and the public status page for Rivence installs. It runs
 on GitHub Actions and GitHub Pages, outside the AWS account the installs live in, so it still
-sees an outage that takes the account's own alarms down with it. The page is served at the
-address named by `status-website.cname` in `.upptimerc.yml`.
+sees an outage that takes the account's own alarms down with it.
 
-It holds the watch configuration, the uptime history, the page and one certificate job. It
-holds no Rivence product code, no secrets and no hostnames: every install appears only under a
-neutral label such as `EU-1`.
+It holds no Rivence product code, no stored credential and no hostname. Every install appears
+only under a neutral label such as `EU-1`. The one place a hostname lives is the `INSTALLS`
+repository secret.
 
-## What it watches
+## How it works
 
-- **Health, every five minutes.** Upptime calls each install's `GET /api/health/ready` and
-  treats anything but `200` as down. A down check opens an issue labelled `status` and the
-  install's slug; recovery comments on it and closes it. That issue is both the incident
-  record and the notification, since the organisation's GitHub notifications go to the alert
-  address.
-- **Certificates, daily.** `.github/workflows/cert-expiry.yml` runs `scripts/cert-days.mjs`,
-  which reads each install's TLS certificate over `node:tls`. A certificate within 14 days of
-  expiry, or one that cannot be read at all, opens an issue labelled `cert-expiry`. It never
-  opens a second one for the same label while one is open. Close it once the certificate is
-  renewed; the next run reopens it if not.
+- **Probe, every five minutes** (`.github/workflows/probe.yml`, `scripts/probe.mjs`). The probe
+  calls each install's `GET /api/health/ready`. A `200` means up. Anything else, including a
+  redirect, an error, or no answer within 10 seconds, is retried once after 5 seconds and is
+  down if it fails again.
+  - The first failed probe opens an issue labelled `incident` and the install's slug (`eu-1`).
+    The issue is authored by `github-actions[bot]`, so it notifies the owner.
+  - Recovery comments on that issue and closes it.
+- **Data, on `gh-pages` under `data/`.** `main` holds only code.
+  - `status.json` holds each install's current state.
+  - `uptime/<slug>.json` holds 90 days of minutes down per day.
+  - `incidents.json` holds the last 90 days of `incident` issues and their comments, so the
+    page never calls the GitHub API.
+
+  The probe commits only when something changed: a state change, more minutes down, a new day,
+  or a new incident comment.
+
+- **Downtime accounting.** Downtime runs from the first failed probe to the first successful
+  one. A gap between two runs counts for at most 30 minutes, so a stalled schedule does not
+  invent hours of outage.
+- **Certificates, daily** (`.github/workflows/cert-expiry.yml`, `scripts/cert-days.mjs`). A
+  certificate within 14 days of expiry, or one that cannot be read, opens an issue labelled
+  `cert-expiry`, never a second one for the same install while one is open. Close it once the
+  certificate is renewed.
+- **The page** is `site/`: static HTML, CSS and JavaScript with no framework, no CDN and no
+  external fonts. It reads `data/*.json`. A push to `main` touching `site/` publishes it to
+  `gh-pages` (`.github/workflows/site.yml`), leaving `data/` and `CNAME` alone.
+
+Every workflow uses only its own `GITHUB_TOKEN`, with the permissions its job needs. Every
+action is pinned by commit SHA.
 
 ## Add an install
 
 Only customer and dogfood installs are watched. **A demo install is never added**: it is
 created per use and thrown away, so it would only ever read as an outage.
 
-1. Pick the next free label for the region, such as `EU-2`. Never use a customer's name.
-2. Add the repository secret `EU_2_URL` with the value `https://<host>/api/health/ready`.
-3. Add the secret's name to the `SECRETS_CONTEXT` allowlist. The line appears in **six places
-   across three workflows**: two in each of `uptime.yml`, `response-time.yml` and `setup.yml`
-   (the hostname-mask step and the Upptime step). `grep -n SECRETS_CONTEXT .github/workflows/*.yml`
-   lists them, and all six must stay identical. With two installs each reads:
+Edit the one repository secret `INSTALLS`, a JSON map of label to bare hostname:
 
-   ```yaml
-   SECRETS_CONTEXT: '{"EU_1_URL":${{ toJson(secrets.EU_1_URL) }},"EU_2_URL":${{ toJson(secrets.EU_2_URL) }}}'
-   ```
+```json
+{ "EU-1": "<host>", "EU-2": "<host>" }
+```
 
-   A secret missing from the allowlist is never substituted, so its install reads as down.
-   The list is explicit on purpose: only the steps that probe see the site URLs, and the
-   steps that install npm packages at their latest version never do.
+- Use the next free label for the region, and never a customer's name.
+- A secret cannot be read back, so the operator's password store holds the master copy of this
+  map. Paste the whole map each time.
 
-4. Replace the repository secret `CERT_HOSTS` with the whole map, now including the new
-   label, for example `{"EU-1":"<host>","EU-2":"<host>"}`. A secret cannot be read back, so
-   the operator's password store holds the master copy of this map.
-5. Add the site entry to `.upptimerc.yml` and commit it, with the workflow edits, to `main`:
+The next probe run adds the install to the page. Removing an install is the same edit. Its
+history stays in `data/` but is no longer shown.
 
-   ```yaml
-   - name: EU-2
-     slug: eu-2
-     url: $EU_2_URL
-     expectedStatusCodes:
-       - 200
-     maxRedirects: 0
-   ```
+## Post an incident update
 
-   Your push, or the merge of your pull request, runs Setup CI, which adds the component to
-   the page.
+Everything here is public: never write a hostname, a customer's name or personal data. A
+hostname that slips into an issue is replaced by its label before it reaches the page.
 
-Removing an install is the same steps in reverse.
+- **The probe opened the issue:** comment on it. Each comment shows on the page as an update
+  within five minutes.
+- **The probe saw nothing** (for example, wrong data while the install answers): open an issue
+  with the labels `incident` and the install's slug (`eu-1`). Title it with one plain sentence,
+  add updates as comments, and close it when it is resolved.
 
-## Post an incident note
+On the page, the newest update of a closed incident reads "Resolved" and the first reads
+"Investigating".
 
-Everything here is public: never write a hostname, a customer's name or personal data.
+## Tests
 
-- **The watch opened the issue:** add a comment to the open issue labelled `status` and the
-  install's slug. Each comment shows on the page under that incident. Upptime locks the issue,
-  so only members of the organisation can comment.
-- **The watch saw nothing** (for example, wrong data while the install answers): open an issue
-  titled `EU-1: <one plain sentence>` with the labels `status` and `eu-1`, comment on it as
-  the incident moves, and close it when it is resolved.
-- **Planned work:** open an issue from the "Maintenance window" template. The install's slug
-  under `expectedDown` stops the window from opening an outage issue.
-
-## How the repository is kept
-
-The workflows started as the Upptime v1.46.0 template and are kept by hand, because every
-action they use is pinned by commit SHA. The template's two self-updating workflows
-(`update-template.yml` and `updates.yml`) are deliberately absent: they rewrite every workflow
-back to unpinned tags and run unpinned code with the repository token. To upgrade Upptime,
-re-pin `upptime/uptime-monitor` in every workflow at once.
-
-Every workflow, Upptime's and the certificate job, works with its own `GITHUB_TOKEN`; no
-stored credential exists. Issues opened with it are authored by `github-actions[bot]`, so they
-notify the owner. A personal token would author them as the owner, and GitHub never notifies
-anyone about their own actions. Each job asks only for what it uses: `contents: write` where
-it commits or pushes `gh-pages`, and `issues: write` where Upptime opens or closes incidents.
-
-A push made with `GITHUB_TOKEN` never starts another workflow, so every workflow runs on its
-own schedule or by hand, and Setup CI does all of its steps in one job. Only a person's push
-of `.upptimerc.yml` starts Setup CI.
-
-The secrets are one `<LABEL>_URL` per install and `CERT_HOSTS`.
-
-## Current status
-
-<!--start: status pages-->
-<!-- This summary is generated by Upptime (https://github.com/upptime/upptime) -->
-<!-- Do not edit this manually, your changes will be overwritten -->
-<!-- prettier-ignore -->
-| URL | Status | History | Response Time | Uptime |
-| --- | ------ | ------- | ------------- | ------ |
-| <img alt="" src="https://icons.duckduckgo.com/ip3/null.ico" height="13"> EU-1 | 🟩 Up | [eu-1.yml](https://github.com/rivex-hk/rivence-status/commits/HEAD/history/eu-1.yml) | <details><summary><img alt="Response time graph" src="./graphs/eu-1/response-time-week.png" height="20"> 632ms</summary><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="Response time 632" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fresponse-time.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="24-hour response time 632" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fresponse-time-day.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="7-day response time 632" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fresponse-time-week.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="30-day response time 632" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fresponse-time-month.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="1-year response time 632" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fresponse-time-year.json"></a></details> | <details><summary><a href="https://status.app.rivence.io/history/eu-1">100.00%</a></summary><a href="https://status.app.rivence.io/history/eu-1"><img alt="All-time uptime 100.00%" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fuptime.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="24-hour uptime 100.00%" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fuptime-day.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="7-day uptime 100.00%" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fuptime-week.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="30-day uptime 100.00%" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fuptime-month.json"></a><br><a href="https://status.app.rivence.io/history/eu-1"><img alt="1-year uptime 100.00%" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Frivex-hk%2Frivence-status%2FHEAD%2Fapi%2Feu-1%2Fuptime-year.json"></a></details>
-
-<!--end: status pages-->
-
-## License
-
-The workflows derive from [Upptime](https://github.com/upptime/upptime), [MIT](./LICENSE).
+```sh
+node --test "test/*.test.mjs"
+```

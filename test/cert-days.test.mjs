@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import {
-  findDue,
-  issueFor,
-  openIssues,
-  parseHosts,
-} from "../scripts/cert-days.mjs";
+import { findDue, issueFor, openIssues } from "../scripts/cert-days.mjs";
 
 const NOW = new Date("2026-10-17T06:00:00Z");
 const inDays = (days) => ({
@@ -91,11 +86,4 @@ test("no second issue opens for a label while one is open", async () => {
   ];
   assert.deepEqual(await openIssues(due, api), ["EU-10"]);
   assert.equal(created.length, 1);
-});
-
-test("CERT_HOSTS must map labels to bare hostnames", () => {
-  assert.deepEqual(parseHosts('{"EU-1":"a.example"}'), { "EU-1": "a.example" });
-  assert.throws(() => parseHosts('{"EU-1":"https://a.example/"}'));
-  assert.throws(() => parseHosts('["a.example"]'));
-  assert.throws(() => parseHosts(undefined));
 });
