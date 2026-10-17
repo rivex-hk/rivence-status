@@ -1,5 +1,7 @@
 import tls from "node:tls";
 import { pathToFileURL } from "node:url";
+import { ensureLabels, githubClient } from "./github.mjs";
+import { maskHosts, parseInstalls } from "./installs.mjs";
 
 export const WARN_DAYS = 14;
 export const ISSUE_LABEL = "cert-expiry";
@@ -29,28 +31,6 @@ export function readCertificate(host) {
     );
     socket.on("error", reject);
   });
-}
-
-export function parseHosts(raw) {
-  let hosts;
-  try {
-    hosts = JSON.parse(raw ?? "");
-  } catch {
-    throw new Error("CERT_HOSTS is not valid JSON");
-  }
-  const valid =
-    hosts !== null &&
-    typeof hosts === "object" &&
-    !Array.isArray(hosts) &&
-    Object.entries(hosts).every(
-      ([label, host]) =>
-        label.trim() && typeof host === "string" && /^[a-z0-9.-]+$/i.test(host),
-    );
-  if (!valid)
-    throw new Error(
-      "CERT_HOSTS must be a JSON object of label to bare hostname",
-    );
-  return hosts;
 }
 
 const errorCode = (error) =>
@@ -108,27 +88,7 @@ export async function openIssues(due, api) {
   return opened;
 }
 
-function githubIssues({
-  token,
-  repository,
-  apiUrl = "https://api.github.com",
-}) {
-  const request = async (path, init = {}) => {
-    const response = await fetch(`${apiUrl}/repos/${repository}${path}`, {
-      ...init,
-      headers: {
-        accept: "application/vnd.github+json",
-        authorization: `Bearer ${token}`,
-        "x-github-api-version": "2022-11-28",
-        ...(init.body ? { "content-type": "application/json" } : {}),
-      },
-    });
-    if (!response.ok)
-      throw new Error(
-        `GitHub API ${init.method ?? "GET"} ${path}: ${response.status}`,
-      );
-    return response.json();
-  };
+function githubIssues(request) {
   return {
     listOpen: () =>
       request(`/issues?state=open&labels=${ISSUE_LABEL}&per_page=100`),
@@ -141,21 +101,16 @@ function githubIssues({
 }
 
 async function main() {
-  const hosts = parseHosts(process.env.CERT_HOSTS);
-  for (const host of Object.values(hosts)) console.log(`::add-mask::${host}`);
+  const hosts = parseInstalls(process.env.INSTALLS);
+  maskHosts(hosts);
   const due = await findDue(hosts);
   console.log(
     `${Object.keys(hosts).length} certificates read, ${due.length} need attention`,
   );
   if (due.length === 0) return;
-  await openIssues(
-    due,
-    githubIssues({
-      token: process.env.GITHUB_TOKEN,
-      repository: process.env.GITHUB_REPOSITORY,
-      apiUrl: process.env.GITHUB_API_URL,
-    }),
-  );
+  const request = githubClient();
+  await ensureLabels(request, [ISSUE_LABEL]);
+  await openIssues(due, githubIssues(request));
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
