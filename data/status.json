@@ -1,0 +1,12 @@
+{
+  "installs": [
+    {
+      "label": "EU-1",
+      "slug": "eu-1",
+      "status": "up",
+      "since": "2026-10-17T17:43:54.708Z",
+      "issue": null,
+      "checkedAt": "2026-10-17T17:43:54.708Z"
+    }
+  ]
+}
