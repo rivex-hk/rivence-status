@@ -1,0 +1,29 @@
+owner: rivex-hk
+repo: rivence-status
+
+# One entry per watched customer or dogfood install, never a demo install.
+# `name` is the neutral label shown on the page; `url` names a repository secret
+# holding https://<host>/api/health/ready, so no hostname is written in this repository.
+sites:
+  - name: EU-1
+    slug: eu-1
+    url: $EU_1_URL
+    expectedStatusCodes:
+      - 200
+    maxRedirects: 0
+
+status-website:
+  cname: status.app.rivence.io
+  name: Rivence status
+  introTitle: "**Rivence** service status"
+  introMessage: Each component is one Rivence install under its own label. Your administrator knows which label is yours.
+  navbar:
+    - title: Status
+      href: /
+    - title: Incidents
+      href: https://github.com/$OWNER/$REPO/issues?q=label%3Astatus
+
+skipDescriptionUpdate: true
+skipTopicsUpdate: true
+skipHomepageUpdate: true
+skipDeleteIssues: true
