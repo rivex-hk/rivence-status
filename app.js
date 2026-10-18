@@ -2,6 +2,7 @@ import {
   RANGES,
   dayOf,
   formatDay,
+  heartbeat,
   overall,
   pastIncidents,
   shapeRow,
@@ -186,11 +187,13 @@ function wireBars(container) {
 async function render() {
   const banner = document.getElementById("banner");
   const bannerText = document.getElementById("banner-text");
+  const lastChecked = document.getElementById("last-checked");
   const components = document.getElementById("components");
   const incidentDays = document.getElementById("incident-days");
   try {
-    const [status, { incidents }] = await Promise.all([
+    const [status, beat, { incidents }] = await Promise.all([
       getJson("data/status.json"),
+      getJson("data/heartbeat.json").catch(() => ({})),
       getJson("data/incidents.json").catch(() => ({ incidents: [] })),
     ]);
     const today = dayOf(Date.now());
@@ -199,12 +202,17 @@ async function render() {
         getJson(`data/uptime/${install.slug}.json`).catch(() => ({ days: [] })),
       ),
     );
-    const summary = overall(status.installs);
+    const pulse = heartbeat(beat.checkedAt, Date.now());
+    const summary = overall(status.installs, pulse.stalled);
     banner.dataset.level = summary.level;
     bannerText.textContent = summary.text;
+    lastChecked.textContent = pulse.text;
+    lastChecked.dataset.stalled = String(pulse.stalled);
     components.replaceChildren(
       ...status.installs.map((install, i) =>
-        renderRow(shapeRow(install, uptimes[i].days, incidents, today)),
+        renderRow(
+          shapeRow(install, uptimes[i].days, incidents, today, pulse.stalled),
+        ),
       ),
     );
     incidentDays.replaceChildren(
@@ -214,6 +222,7 @@ async function render() {
     banner.dataset.level = "none";
     bannerText.textContent =
       "Status data is not available right now. Try again in a few minutes.";
+    lastChecked.textContent = "";
   }
 }
 
