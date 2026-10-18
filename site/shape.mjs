@@ -2,6 +2,10 @@
 
 export const RANGES = [30, 60, 90];
 export const INCIDENT_DAYS = 15;
+// Must equal the cron step in .github/workflows/probe.yml (a test reads the workflow and checks).
+export const PROBE_INTERVAL_MINUTES = 5;
+// Three missed runs: GitHub delays scheduled runs now and then, so one or two late ones are normal.
+export const STALE_AFTER_MINUTES = 3 * PROBE_INTERVAL_MINUTES;
 const DAY_MS = 86_400_000;
 const MINUTES_PER_DAY = 1440;
 
@@ -66,7 +70,32 @@ const touches = (incident, label, date) => {
   return incident.installs.includes(label) && from <= date && date <= to;
 };
 
-export function shapeRow(install, uptimeDays, incidents, today) {
+// The probe rewrites data/heartbeat.json on every run, even when nothing else changed, so its
+// time is the newest proof the probe is alive. A missing or unreadable time counts as stalled.
+export function heartbeat(checkedAt, now) {
+  const time = Date.parse(checkedAt ?? "");
+  if (Number.isNaN(time))
+    return { stalled: true, text: "No probe has reported yet" };
+  const minutes = Math.max(0, Math.floor((now - time) / 60_000));
+  const ago =
+    minutes < 1
+      ? "just now"
+      : minutes < 60
+        ? `${plural(minutes, "minute")} ago`
+        : `${plural(Math.floor(minutes / 60), "hour")} ago`;
+  return {
+    stalled: minutes > STALE_AFTER_MINUTES,
+    text: `Last checked ${formatStamp(time)} (${ago})`,
+  };
+}
+
+export function shapeRow(
+  install,
+  uptimeDays,
+  incidents,
+  today,
+  stalled = false,
+) {
   const minutesByDate = new Map(
     uptimeDays.map((day) => [day.date, day.minutesDown]),
   );
@@ -89,14 +118,20 @@ export function shapeRow(install, uptimeDays, incidents, today) {
   const down = install.status === "down";
   return {
     label: install.label,
-    status: down ? "down" : "up",
-    statusText: down ? "Major Outage" : "Operational",
+    status: stalled ? "unknown" : down ? "down" : "up",
+    statusText: stalled
+      ? "Status unknown"
+      : down
+        ? "Major Outage"
+        : "Operational",
     bars,
     uptime,
   };
 }
 
-export function overall(installs) {
+export function overall(installs, stalled = false) {
+  if (stalled)
+    return { level: "stalled", text: "Status unknown - probes stalled" };
   const down = installs.filter((install) => install.status === "down").length;
   if (installs.length === 0)
     return { level: "none", text: "No installs are watched yet" };

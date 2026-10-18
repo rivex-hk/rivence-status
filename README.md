@@ -23,8 +23,13 @@ repository secret.
   - `incidents.json` holds the last 90 days of `incident` issues and their comments, so the
     page never calls the GitHub API.
 
-  The probe commits only when something changed: a state change, more minutes down, a new day,
-  or a new incident comment.
+  - `heartbeat.json` holds the time of the latest probe run. It is rewritten on every run, so the
+    probe commits every five minutes.
+
+  The page shows that time as "Last checked". When it is more than 15 minutes old (three missed
+  runs), the banner and every component read "Status unknown - probes stalled" instead of
+  "Operational". The 15 minutes is `STALE_AFTER_MINUTES` in `site/shape.mjs`, three times the
+  cron interval; a test fails if the workflow's cron and `PROBE_INTERVAL_MINUTES` drift apart.
 
 - **Downtime accounting.** Downtime runs from the first failed probe to the first successful
   one. A gap between two runs counts for at most 30 minutes, so a stalled schedule does not
