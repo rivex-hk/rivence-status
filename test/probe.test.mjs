@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   accrueDown,
   filesToWrite,
+  heartbeatText,
   probeOnce,
   rollDays,
   shapeIncidents,
@@ -264,4 +265,14 @@ test("a probe is up only on HTTP 200; a redirect, an error and a timeout are dow
     up: false,
     detail: "no answer within 10 seconds",
   });
+});
+
+test("the heartbeat file carries the run time, so it changes on every run", () => {
+  assert.deepEqual(JSON.parse(heartbeatText(at("2026-10-17T10:05:00Z"))), {
+    checkedAt: "2026-10-17T10:05:00.000Z",
+  });
+  assert.notEqual(
+    heartbeatText(at("2026-10-17T10:05:00Z")),
+    heartbeatText(at("2026-10-17T10:10:00Z")),
+  );
 });

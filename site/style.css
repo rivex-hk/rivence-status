@@ -16,6 +16,7 @@
   --primary: hsl(232 38% 51%);
   --ok-text: #1a7f45;
   --major-text: #c62f35;
+  --warn-text: #8a5a00;
   color-scheme: light;
 }
 
@@ -37,6 +38,7 @@
     --primary: hsl(230 62% 71%);
     --ok-text: #3fb873;
     --major-text: #f06a6e;
+    --warn-text: #e0b225;
     color-scheme: dark;
   }
 }
@@ -137,6 +139,20 @@ a {
 .banner[data-level="none"] {
   color: var(--text);
 }
+.banner[data-level="stalled"] {
+  background: var(--minor);
+  color: #1d2330;
+}
+
+.last-checked {
+  margin: -28px 0 36px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.last-checked[data-stalled="true"] {
+  color: var(--warn-text);
+  font-weight: 600;
+}
 
 .section-head {
   display: flex;
@@ -187,6 +203,10 @@ a {
 
 .component-status[data-status="down"] {
   color: var(--major-text);
+}
+
+.component-status[data-status="unknown"] {
+  color: var(--warn-text);
 }
 
 .component-status::before {

@@ -247,6 +247,11 @@ export function serialize(value, installs) {
   return text;
 }
 
+// Written on every run, changed or not: the page tells a live probe from a stalled one by this time.
+export const heartbeatText = (now) =>
+  `${JSON.stringify({ checkedAt: now.toISOString() }, null, 2)}
+`;
+
 const withoutCheckTimes = (status) =>
   JSON.stringify(
     status?.installs?.map(({ checkedAt, ...rest }) => rest) ?? null,
@@ -312,6 +317,7 @@ async function main() {
   await mkdir(join(dataDir, "uptime"), { recursive: true });
   for (const [name, text] of Object.entries(files))
     await writeFile(join(dataDir, name), text);
+  await writeFile(join(dataDir, "heartbeat.json"), heartbeatText(now));
   console.log(
     Object.keys(files).length
       ? `wrote ${Object.keys(files).join(", ")}`

@@ -1,5 +1,6 @@
 # Every five minutes: probe each install in the INSTALLS secret, open or close its incident
-# issue, and commit the status data to gh-pages under data/, only when something changed.
+# issue, and commit the status data to gh-pages under data/. data/heartbeat.json changes on every run, so the
+# page can tell a live probe from a stalled one.
 name: Probe
 on:
   schedule:
