@@ -2,10 +2,9 @@
 
 export const RANGES = [30, 60, 90];
 export const INCIDENT_DAYS = 15;
-// Must equal the cron step in .github/workflows/probe.yml (a test reads the workflow and checks).
-export const PROBE_INTERVAL_MINUTES = 5;
-// Three missed runs: GitHub delays scheduled runs now and then, so one or two late ones are normal.
-export const STALE_AFTER_MINUTES = 3 * PROBE_INTERVAL_MINUTES;
+// GitHub starts the 5-minute probe late as a matter of course: over 200 runs in October 2026 the
+// median gap was 10 minutes and the longest 46. Only a gap past an hour means the probe stopped.
+export const STALE_AFTER_MINUTES = 60;
 const DAY_MS = 86_400_000;
 const MINUTES_PER_DAY = 1440;
 

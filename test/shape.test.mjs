@@ -1,8 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
-  PROBE_INTERVAL_MINUTES,
   STALE_AFTER_MINUTES,
   heartbeat,
   barLevel,
@@ -101,7 +99,7 @@ test("a closed incident with no closing note still shows Resolved", () => {
   });
 });
 
-test("the page treats the probe as stalled after three missed runs, and says so everywhere", () => {
+test("the page treats the probe as stalled after an hour without a run, and says so everywhere", () => {
   const now = Date.parse("2026-10-18T01:00:00Z");
   const beat = (minutesAgo) =>
     heartbeat(new Date(now - minutesAgo * 60_000).toISOString(), now);
@@ -109,6 +107,7 @@ test("the page treats the probe as stalled after three missed runs, and says so 
     stalled: false,
     text: "Last checked Oct 18, 00:58 UTC (2 minutes ago)",
   });
+  assert.equal(beat(46).stalled, false);
   assert.equal(beat(STALE_AFTER_MINUTES).stalled, false);
   assert.equal(beat(STALE_AFTER_MINUTES + 1).stalled, true);
   assert.equal(beat(90).text, "Last checked Oct 17, 23:30 UTC (1 hour ago)");
@@ -125,13 +124,4 @@ test("the page treats the probe as stalled after three missed runs, and says so 
   const row = shapeRow({ label: "EU-1", status: "up" }, [], [], TODAY, true);
   assert.equal(row.statusText, "Status unknown");
   assert.equal(row.status, "unknown");
-});
-
-test("the stale threshold follows the probe workflow's cron interval", () => {
-  const cron = readFileSync(
-    new URL("../.github/workflows/probe.yml", import.meta.url),
-    "utf8",
-  ).match(/cron:\s*"\*\/(\d+) \* \* \* \*"/);
-  assert.equal(Number(cron?.[1]), PROBE_INTERVAL_MINUTES);
-  assert.equal(STALE_AFTER_MINUTES, 3 * PROBE_INTERVAL_MINUTES);
 });
