@@ -14,6 +14,10 @@ repository secret.
   calls each install's `GET /api/health/ready`. A `200` means up. Anything else, including a
   redirect, an error, or no answer within 10 seconds, is retried once after 5 seconds and is
   down if it fails again.
+  - An EventBridge rule in the Rivence AWS account starts the workflow every five minutes
+    through `workflow_dispatch`, because GitHub fires the `*/5` schedule 10 to 45 minutes
+    apart. The schedule stays as the fallback. The rule is
+    `infra/provision-status-timer.sh` in the Rivence repository.
   - The first failed probe opens an issue labelled `incident` and the install's slug (`eu-1`).
     The issue is authored by `github-actions[bot]`, so it notifies the owner.
   - Recovery comments on that issue and closes it.
