@@ -3,10 +3,10 @@
     {
       "label": "EU-1",
       "slug": "eu-1",
-      "status": "down",
-      "since": "2026-10-26T20:52:26.696Z",
-      "issue": 5,
-      "checkedAt": "2026-10-26T21:05:37.099Z"
+      "status": "up",
+      "since": "2026-10-26T21:10:38.526Z",
+      "issue": null,
+      "checkedAt": "2026-10-26T21:10:38.526Z"
     }
   ]
 }

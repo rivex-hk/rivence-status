@@ -7,11 +7,15 @@
         "EU-1"
       ],
       "createdAt": "2026-10-26T20:52:52Z",
-      "closedAt": null,
+      "closedAt": "2026-10-26T21:10:39Z",
       "updates": [
         {
           "at": "2026-10-26T20:52:52Z",
           "body": "EU-1 failed its health check at 20:52 UTC (no answer within 10 seconds). We are investigating."
+        },
+        {
+          "at": "2026-10-26T21:10:39Z",
+          "body": "EU-1 is responding again. It was unavailable for about 18 minutes."
         }
       ]
     }
