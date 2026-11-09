@@ -1,6 +1,21 @@
 {
   "incidents": [
     {
+      "number": 9,
+      "title": "EU-1 is not responding",
+      "installs": [
+        "EU-1"
+      ],
+      "createdAt": "2026-11-09T13:39:40Z",
+      "closedAt": null,
+      "updates": [
+        {
+          "at": "2026-11-09T13:39:40Z",
+          "body": "EU-1 failed its health check at 13:39 UTC (no answer within 10 seconds). We are investigating."
+        }
+      ]
+    },
+    {
       "number": 8,
       "title": "EU-1 is not responding",
       "installs": [
