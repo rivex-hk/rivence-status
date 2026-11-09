@@ -7,11 +7,15 @@
         "EU-1"
       ],
       "createdAt": "2026-11-09T12:45:20Z",
-      "closedAt": null,
+      "closedAt": "2026-11-09T13:30:39Z",
       "updates": [
         {
           "at": "2026-11-09T12:45:20Z",
           "body": "EU-1 failed its health check at 12:45 UTC (could not connect, ECONNREFUSED). We are investigating."
+        },
+        {
+          "at": "2026-11-09T13:30:39Z",
+          "body": "EU-1 is responding again. It was unavailable for about 45 minutes."
         }
       ]
     },
